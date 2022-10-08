@@ -34,7 +34,7 @@ def prepare_jason(data_request):
 
 def main():
 	# Link para api para as +11000 cartas
-	url = "https://db.ygoprodeck.com/api/v7/cardinfo.php"
+	url = "https://db.ygoprodeck.com/api/v7/cardinfo.php?level=4&attribute=water"
 	request = requests.get(url)
 	data_request = request.content
 
