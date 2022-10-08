@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 import sys
@@ -20,27 +21,42 @@ def load_paths():
 
 def load_image(image_path):
     image = imread(image_path)
-    return image
+    image_cropped = image[110:430, 50:370, :]
+    image_result = cv2.cvtColor(image_cropped, cv2.COLOR_BGR2GRAY)
+    return image_result
 
 
-def create_positives(image):
-    height, width = image.shape[:2]
-    positive_images = []
-    for i in range(4):
-        sig1 = -1 if i < 2 else 1
-        sig2 = -1 if (i % 2) == 0 else (i % 2)
-        displacement = np.float32([[1, 0, 50 * sig1], [0, 1, 50 * sig2]])
-        positive_images.append(cv2.warpAffine(image, displacement, (width, height)))
-    center = (height / 2, width / 2)
-    for i in range(2):
-        sig = -1 if (i % 2) == 0 else (i % 2)
-        rotation = cv2.getRotationMatrix2D(center, -10 * sig, 1.0)
-        positive_images.append(cv2.warpAffine(image, rotation, (width, height)))
-    positive_images.append(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-    return positive_images
+def create_positives(image_path):
+    image = imread(image_path)
+    img_crp = image[110:430, 50:370, :]
+    img_pos = []
+    # Contraste
+    lab = cv2.cvtColor(img_crp, cv2.COLOR_BGR2LAB)
+    for i in range(1, 10, 3):
+        l_channel, a, b = cv2.split(lab)
+        clp = 1.0*i - 4
+        tgs = (i, i)
+        clahe = cv2.createCLAHE(clipLimit=clp, tileGridSize=tgs)
+        cl = clahe.apply(l_channel)
+        limg = cv2.merge((cl, a, b))
+        enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+        result = cv2.cvtColor(enhanced_img, cv2.COLOR_BGR2GRAY)
+        img_pos.append(result)
+    # Brilho
+    hsv = cv2.cvtColor(img_crp, cv2.COLOR_BGR2HSV)
+    for i in range(10, 50, 10):
+        h, s, v = cv2.split(hsv)
+        lim = 255 - i
+        v[v > lim] = 255
+        v[v <= lim] += i
+        final_hsv = cv2.merge((h, s, v))
+        enhanced_img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+        result = cv2.cvtColor(enhanced_img, cv2.COLOR_BGR2GRAY)
+        img_pos.append(result)
+    return img_pos
 
 
-def show_image(image, gray=False):
+def show_image(image, gray=True):
     if gray:
         plt.imshow(image, cmap='gray')
     else:
@@ -51,13 +67,11 @@ def show_image(image, gray=False):
 def main():
     images_path = load_paths()
     for image_path in images_path:
-        image = load_image(image_path)
-        positive_images = create_positives(image)
-        for image in positive_images:
-            if len(image.shape) == 2:
-                show_image(image, gray=True)
-            else:
-                show_image(image)
+        img_ach = load_image(image_path)
+        img_pos = create_positives(image_path)
+        show_image(img_ach)
+        for image in img_pos:
+            show_image(image)
         break
 
 
