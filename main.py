@@ -60,6 +60,39 @@ def create_positives(image_path):
     return img_pos
 
 
+def changing_contrast(image_path):
+    image = imread(image_path)
+    img_crp = image[110:430, 50:370, :]
+    new_image = increase_bright(img_crp, 50)
+    lab = cv2.cvtColor(new_image, cv2.COLOR_BGR2LAB)
+    l_channel, a, b = cv2.split(lab)
+    i = random.randint(1, 10)
+    clp = -10.0 * i - 4
+    tgs = (i, i)
+    clahe = cv2.createCLAHE(clipLimit=clp, tileGridSize=tgs)
+    cl = clahe.apply(l_channel)
+    limg = cv2.merge((cl, a, b))
+    enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+    result = cv2.cvtColor(enhanced_img, cv2.COLOR_BGR2GRAY)
+    return result
+
+
+def changing_bright(image_path):
+    image = imread(image_path)
+    img_crp = image[110:430, 50:370, :]
+    new_image = decrease_bright(img_crp, 50)
+    hsv = cv2.cvtColor(new_image, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+    i = random.randint(1, 10)
+    lim = 255 - i
+    v[v > lim] = 255
+    v[v <= lim] += i
+    final_hsv = cv2.merge((h, s, v))
+    enhanced_img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    result = cv2.cvtColor(enhanced_img, cv2.COLOR_BGR2GRAY)
+    return result
+
+
 def show_image(image, gray=True):
     if gray:
         plt.imshow(image, cmap='gray')
@@ -68,33 +101,39 @@ def show_image(image, gray=True):
     plt.show()
 
 
-def minhaFunc(image):
-    m = np.ones(image.shape, dtype="uint8") * 100
+def increase_bright(image, value):
+    m = np.ones(image.shape, dtype="uint8") * value
     added = cv2.add(image, m)
     return added
 
-def minhaFunc2(image):
-    m = np.ones(image.shape, dtype="uint8") * 100
+
+def decrease_bright(image, value):
+    m = np.ones(image.shape, dtype="uint8") * value
     added = cv2.subtract(image, m)
     return added
 
 
 def main():
     images_path = load_paths()
-    cont = 0
-    value = random.randint(0, 256)
-    for image_path in images_path:
-        print(cont)
-        print(value)
-        if(cont == value):
-            img_ach = load_image(image_path)
-            img_pos = create_positives(image_path)
-            img_pos = minhaFunc(img_ach)
-            img_pos2 = minhaFunc2(img_ach)
-            img = np.hstack((img_ach, img_pos))
-            show_image(np.hstack((img, img_pos2)))
-            break
-        cont+=1
+    for i in range(10):
+        cont = 0
+        value_image = random.randint(0, 12000)
+        for image_path in images_path:
+            if cont == value_image:
+                value_plus = random.randint(20, 80)
+                value_minus = random.randint(20, 80)
+                img_ach = load_image(image_path)
+                #img_pos = create_positives(image_path)
+                img_plus = increase_bright(img_ach, value_plus)
+                img_minus = decrease_bright(img_ach, value_minus)
+                img_contrast = changing_contrast(image_path)
+                img_bright = changing_bright(image_path)
+                img = np.hstack((img_plus, img_contrast))
+                img = np.hstack((img, img_ach))
+                img = np.hstack((img, img_bright))
+                show_image(np.hstack((img, img_minus)))
+                break
+            cont += 1
 
 
 if __name__ == '__main__':
