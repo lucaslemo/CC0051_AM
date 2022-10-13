@@ -13,6 +13,9 @@ class Train:
         self.number_epochs = number_epochs
 
     def __prepare_images(self, img):
+        # https://pytorch.org/hub/pytorch_vision_resnet/
+        # https://stackoverflow.com/questions/57237352/what-does-unsqueeze-do-in-pytorch
+        # https://pytorch.org/docs/stable/tensors.html#:~:text=A%20torch.Tensor%20is%20a,of%20a%20single%20data%20type.
         transform = transforms.Compose(
             [
                 transforms.ToTensor(),
@@ -41,6 +44,7 @@ class Train:
         torch.save(net.state_dict(), save_path)
 
 
+# https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html
 class SiameseNetwork(torch_nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
