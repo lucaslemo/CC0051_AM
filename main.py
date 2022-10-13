@@ -1,8 +1,7 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 import random
 from Image import Image
+from training import Train
 
 
 def load_paths():
@@ -14,25 +13,16 @@ def load_paths():
     return images_path
 
 
-def show_image(image, gray=True):
-    if gray:
-        plt.imshow(image, cmap='gray')
-    else:
-        plt.imshow(image)
-    plt.show()
-
-
 def main():
     images_path = load_paths()
     value_image = random.randint(0, 12364)
-    image = Image(images_path[value_image])
     neg_value = random.randint(0, 12364)
+    image = Image(images_path[value_image])
     while neg_value == value_image:
         neg_value = random.randint(0, 12364)
     image_neg = Image(images_path[neg_value])
-    img_pos = np.hstack((image.get_anchor(), image.get_positive()))
-    img_neg = np.hstack((image_neg.get_anchor(), image_neg.get_positive()))
-    show_image(np.hstack((img_pos, img_neg)))
+    train = Train()
+    train.start(image.get_anchor(), image.get_positive(), image_neg.get_anchor())
 
 
 if __name__ == '__main__':
