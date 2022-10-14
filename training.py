@@ -3,14 +3,20 @@ import torch.nn as torch_nn
 import torchvision.models as models
 import torch.nn.functional as nn_functional
 import torchvision.transforms as transforms
+import torchvision.datasets as dataset
 from torch import optim
+from convertImage import ConvertImage as imageClass
 
 
 class Train:
-    def __init__(self, batch_size=48, number_epochs=300):
+    def __init__(self, training_path, batch_size=48, number_epochs=300, margin=2.0, learning_rate=0.0005):
         # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
+        self.training_path = training_path
         self.batch_size = batch_size
         self.number_epochs = number_epochs
+        self.net = torch_nn.DataParallel(SiameseNetwork().cuda(), device_ids=[0])
+        self.criterion = TripletLoss(margin)
+        self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
 
     def __prepare_images(self, img):
         # https://pytorch.org/hub/pytorch_vision_resnet/
@@ -27,24 +33,23 @@ class Train:
         )
         return transform(img).unsqueeze(0)
 
-    def start(self, img_anc, img_pos, img_neg):
-        img_anc = self.__prepare_images(img_anc)
-        img_pos = self.__prepare_images(img_pos)
-        img_neg = self.__prepare_images(img_neg)
-        net = SiameseNetwork()
-        margin = 2.
-        criterion = TripletLoss(margin)
-        optimizer = optim.Adam(net.parameters(), lr=0.0005)
-        optimizer.zero_grad()
-        output1, output2, output3 = net(img_anc, img_pos, img_neg)
-        loss_contrastive = criterion(output1, output2, output3)
-        loss_contrastive.backward()
-        optimizer.step()
-        save_path = './test.pth'
-        torch.save(net.state_dict(), save_path)
+    def start(self):
+        for epoch in range(self.number_epochs):
+            for i in range(len(self.training_path)):
+                pass
+                '''
+                self.optimizer.zero_grad()
+                output1, output2, output3 = net(img_anc, img_pos, img_neg)
+                loss_contrastive = self.criterion(output1, output2, output3)
+                loss_contrastive.backward()
+                self.optimizer.step()
+                save_path = './test.pth'
+                torch.save(self.net.state_dict(), save_path)
+                '''
 
 
 # https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html
+# https://pytorch.org/vision/main/models.html
 class SiameseNetwork(torch_nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
@@ -58,7 +63,6 @@ class SiameseNetwork(torch_nn.Module):
         output1 = self.forward_once(input1)
         output2 = self.forward_once(input2)
         output3 = self.forward_once(input3)
-
         return output1, output2, output3
 
 
