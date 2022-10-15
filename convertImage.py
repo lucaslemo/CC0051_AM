@@ -1,16 +1,15 @@
 import torchvision.transforms as transforms
-from PIL import Image as img
+from PIL import Image
 from random import randint
 
 
 class ConvertImage:
     def __init__(self, image_path):
-        image = img.open(image_path)
+        image = Image.open(image_path)
         image_crop = image.crop((50, 111, 370, 431))
-        image_l = image_crop.convert("L")
-        image_positive = self.__get_positive(image_l)
-        self.image_ach = self.__gray_convert(image_l)
-        self.image_pos = self.__gray_convert(image_positive)
+        image_small = image_crop.resize((244, 244))
+        self.image_l = image_small.convert("L")
+
 
     def __get_positive(self, image):
         rand1 = (randint(2, 4) / 8) + 0.25
@@ -24,12 +23,24 @@ class ConvertImage:
         )
         return change_img(image)
 
-    def __gray_convert(self, image):
-        change_img = transforms.Compose([transforms.Grayscale(num_output_channels=3)])
-        return change_img(image)
+    def __transform(self, image):
+        # https://stackoverflow.com/questions/57237352/what-does-unsqueeze-do-in-pytorch
+        # https://pytorch.org/docs/stable/tensors.html#:~:text=A%20torch.Tensor%20is%20a,of%20a%20single%20data%20type.
+        transform = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=3),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    [0.485, 0.456, 0.406],
+                    [0.229, 0.224, 0.225]
+                )
+            ]
+        )
+        return transform(image).unsqueeze(0)
 
     def get_anchor(self):
-        return self.image_ach
+        return self.__transform(self.image_l)
 
     def get_positive(self):
-        return self.image_pos
+        positive = self.__get_positive(self.image_l)
+        return self.__transform(positive)

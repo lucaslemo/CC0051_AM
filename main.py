@@ -1,22 +1,25 @@
 import os
-import random
 from training import Train
-
-
-def load_paths():
-    dir_path = os.getcwd()
-    data_path = os.path.join(dir_path, 'dataset')
-    images_path = []
-    for card in os.listdir(data_path):
-        images_path.append(os.path.join(data_path, card))
-    return images_path
+from predict import Predict
 
 
 def main():
-    images_path = load_paths()
-    train = Train(images_path)
-    tarin.init()
+    dir_path = os.getcwd()
+    data_training_path = os.path.join(dir_path, 'train_test_dataset')
+    result_training_path = os.path.join(dir_path, 'training_results')
+
+    # Train
+    '''
+    train = Train(data_training_path, number_epochs=50)
     train.start()
+    '''
+
+    # Predict
+    predict_card = Predict(data_training_path)
+    s = predict_card.test_training()
+    for i in range(len(s)):
+        print('Carta {}: '.format(i), end='')
+        print(s[i])
 
 
 if __name__ == '__main__':
