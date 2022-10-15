@@ -32,8 +32,8 @@ class Predict:
 
     def test_training(self):
         list_ret = []
-        list_aux = []
         for i in range(self.number_cards):
+            list_aux = []
             img = imageClass(self.data[i]['path'])
             img_anc = img.get_anchor()
             img_pos = img.get_positive()
