@@ -9,18 +9,19 @@ def main():
     result_training_path = os.path.join(dir_path, 'training_results')
 
     # Train
-    '''
-    train = Train(data_training_path, number_epochs=50)
+
+    train = Train(data_training_path, number_epochs=1)
     train.start()
-    '''
+
 
     # Predict
+    '''
     predict_card = Predict(data_training_path)
     s = predict_card.test_training()
     for i in range(len(s)):
         print('Carta {}: '.format(i), end='')
         print(s[i])
-
+    '''
 
 if __name__ == '__main__':
     main()
