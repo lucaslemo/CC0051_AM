@@ -1,16 +1,14 @@
 import os
-import random
 import torch
 import torch.nn as torch_nn
 import torchvision.models as models
 import torch.nn.functional as nn_functional
-from torch import optim, save as save
 from convertImage import ConvertImage as imageClass
 
 
 class Predict:
-    def __init__(self, cards_path):
-        self.net = SiameseNetwork()
+    def __init__(self, cards_path, model_path):
+        self.net = SiameseNetwork(model_path)
         self.data = self.__load_data_paths(cards_path)
         self.number_cards = len(self.data)
 
@@ -37,20 +35,13 @@ class Predict:
                 data = imageClass(self.data[i]['path']).get_anchor()
                 print(str(card) + ' -> ' + str(i) + ':', self.__getSimilarRank(img_card, data)[0])
             print()
-        
-
-    def start(self):
-        img_card = imageClass(self.data[0]['path'])
-        img_test = imageClass(self.data[1]['path'])
-        print(self.__getSimilarRank(img_card, img_card)[0])
-        print(self.__getSimilarRank(img_card, img_test)[0])
 
 
 class SiameseNetwork(torch_nn.Module):
-    def __init__(self):
+    def __init__(self, model_path):
         super(SiameseNetwork, self).__init__()
         self.resnet = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
-        self.resnet.load_state_dict(torch.load('./training_results/10Cartas1epocasRESNET101.pth'), strict=False)
+        self.resnet.load_state_dict(torch.load(model_path), strict=False)
         self.resnet.eval()
 
     def forward_once(self, input1):

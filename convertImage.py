@@ -38,18 +38,8 @@ class ConvertImage:
         )
         return transform(image).unsqueeze(0)
 
-    def __create_test_card(self, image):
-        change_img = transforms.Compose(
-            [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4,)]
-        )
-        return change_img(image)
-
     def get_anchor(self):
         return self.__transform(self.image_l)
-
-    def get_test_card(self):
-        img_test = self.__create_test_card(self.image_l)
-        return self.__transform(img_test)
 
     def get_positive(self):
         positive = self.__get_positive(self.image_l)
