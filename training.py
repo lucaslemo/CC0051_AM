@@ -48,6 +48,9 @@ class Train:
         return img.get_anchor(), img.get_positive(), neg.get_anchor()
 
     def start(self):
+        device = torch.device('cpu')
+        vgg = models.vgg16().to(device)
+        summary(vgg, (3, 224, 224))
         for epoch in range(self.number_epochs):
             for i in range(self.number_cards):
                 img_anc, img_pos, img_neg = self.__chose_cards(epoch)
