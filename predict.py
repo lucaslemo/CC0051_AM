@@ -31,22 +31,13 @@ class Predict:
         return euclidean_distance, (output1, output2)
 
     def test_training(self):
-        list_ret = []
-        for i in range(self.number_cards):
-            list_aux = []
-            img = imageClass(self.data[i]['path'])
-            img_anc = img.get_anchor()
-            img_pos = img.get_positive()
-            list_aux.append(self.__getSimilarRank(img_anc, img_anc)[0].item())
-            list_aux.append(self.__getSimilarRank(img_anc, img_pos)[0].item())
-            for j in range(self.number_cards):
-                if i == j:
-                    continue
-                img_neg = imageClass(self.data[j]['path'])
-                img_neg_anc = img_neg.get_anchor()
-                list_aux.append(self.__getSimilarRank(img_anc, img_neg_anc)[0].item())
-            list_ret.append(list_aux)
-        return list_ret
+        for card in range(self.number_cards):
+            img_card = imageClass(self.data[card]['path']).get_anchor()
+            for i in range(self.number_cards):
+                data = imageClass(self.data[i]['path']).get_anchor()
+                print(str(card) + ' -> ' + str(i) + ':', self.__getSimilarRank(img_card, data)[0])
+            print()
+        
 
     def start(self):
         img_card = imageClass(self.data[0]['path'])
@@ -59,7 +50,8 @@ class SiameseNetwork(torch_nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
         self.resnet = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
-        self.resnet.load_state_dict(torch.load('./training_results/12Cards50ephRESNET101.pth'), strict=False)
+        self.resnet.load_state_dict(torch.load('./training_results/10Cartas1epocasRESNET101.pth'), strict=False)
+        self.resnet.eval()
 
     def forward_once(self, input1):
         output = self.resnet(input1)

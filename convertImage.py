@@ -6,10 +6,10 @@ from random import randint
 class ConvertImage:
     def __init__(self, image_path):
         image = Image.open(image_path)
-        image_crop = image.crop((50, 111, 370, 431))
+        image_full = image.resize((421, 614))
+        image_crop = image_full.crop((50, 111, 370, 431))
         image_small = image_crop.resize((244, 244))
         self.image_l = image_small.convert("L")
-
 
     def __get_positive(self, image):
         rand1 = (randint(2, 4) / 8) + 0.25
@@ -38,8 +38,18 @@ class ConvertImage:
         )
         return transform(image).unsqueeze(0)
 
+    def __create_test_card(self, image):
+        change_img = transforms.Compose(
+            [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4,)]
+        )
+        return change_img(image)
+
     def get_anchor(self):
         return self.__transform(self.image_l)
+
+    def get_test_card(self):
+        img_test = self.__create_test_card(self.image_l)
+        return self.__transform(img_test)
 
     def get_positive(self):
         positive = self.__get_positive(self.image_l)
