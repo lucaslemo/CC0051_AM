@@ -15,7 +15,7 @@ class Train:
         self.net = SiameseNetwork()
         self.loss_function = torch_nn.TripletMarginLoss()
         self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
-        self.file_name = '10Cartas{}epocasRESNET101'.format(number_epochs)
+        self.file_name = '10Cartas500epocasRESNET101'.format(number_epochs)
         self.train_log = open('./logs/' + self.file_name + '.txt', mode="a")
 
     def __load_data_paths(self, training_path):
@@ -23,7 +23,7 @@ class Train:
         for card in os.listdir(training_path):
             item = {
                 'path': os.path.join(training_path, card),
-                'card_id': int(card.strip('.jpg')),
+                'card_id': card.strip('.jpg'),
                 'status_use': 0
             }
             images_path.append(item)
@@ -48,9 +48,6 @@ class Train:
         return img.get_anchor(), img.get_positive(), neg.get_anchor()
 
     def start(self):
-        device = torch.device('cpu')
-        vgg = models.vgg16().to(device)
-        summary(vgg, (3, 224, 224))
         for epoch in range(self.number_epochs):
             for i in range(self.number_cards):
                 img_anc, img_pos, img_neg = self.__chose_cards(epoch)
@@ -59,9 +56,17 @@ class Train:
                 loss = self.loss_function(output1, output2, output3)
                 loss.backward()
                 self.optimizer.step()
-                print("Epoch number: {} Current card: {}\n".format(epoch, i))
-            save_path = './training_results/' + self.file_name + '.pth'
-            save(self.net.state_dict(), save_path)
+                dist = (output1 - output2).pow(2).sum(1).pow(.5)
+                print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss.item(), dist))
+                print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss, dist), file=self.train_log)
+            print()
+            if epoch + 1 % 20 == 0:
+                file_name = '10Cartas{}epocasRESNET101'.format(epoch + 1)
+                save_path = './training_results/' + file_name + '.pth'
+                save(self.net.state_dict(), save_path)
+        file_name = 'res'
+        save_path = './training_results/' + file_name + '.pth'
+        save(self.net.state_dict(), save_path)
 
     def __del__(self):
         self.train_log.close()

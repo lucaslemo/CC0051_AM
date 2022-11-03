@@ -5,9 +5,10 @@ from predict import Predict
 
 def main():
     dir_path = os.getcwd()
-    data_training_path = os.path.join(dir_path, 'train_test_dataset') # Caminho para as imagens do banco para treino
-    data_test_path = os.path.join(dir_path, 'real_dataset') # Caminho para as imagens reais das cartas para teste
+    dataset = os.path.join(dir_path, 'small_dataset') # Caminho para as imagens do banco de dados
+    data_test_path = os.path.join(dir_path, 'dme') # Caminho para as imagens reais das cartas para teste
     result_training_path = os.path.join(dir_path, 'training_results') # Caminho para os modelos treinados
+    predict_dict_path = os.path.join(dir_path, 'predicts') # Caminho para ojson com as informacoes das cartas
     model_list = [] # Lista dos caminhos para os modelos treinados
     for model_file in os.listdir(result_training_path):
             item = {
@@ -17,14 +18,12 @@ def main():
             model_list.append(item)
 
     # Train
-    # train = Train(data_training_path, number_epochs=1)
-    # train.start()
+    train = Train(dataset, number_epochs=300)
+    train.start()
 
     # Predict
-    for model in model_list:
-        print(model['name'])
-        predict_card = Predict(data_test_path, model['path'])
-        predict_card.test_training()
+    # predict_card = Predict(data_test_path, dataset, predict_dict_path)
+    # predict_card.test_training()
 
 
 if __name__ == '__main__':

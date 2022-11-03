@@ -12,14 +12,12 @@ class ConvertImage:
         self.image_l = image_small.convert("L")
 
     def __get_positive(self, image):
-        rand1 = (randint(2, 4) / 8) + 0.25
-        rand2 = (randint(2, 5) / 8) + 0.25
-        rand3 = (randint(1, 5) / 8) + 0.25
-        bright = (0.1, rand1 * 2.0)
-        contrast = (0.5, rand2 * 1.5)
-        saturation = (0.0, rand3 * 2.0)
         change_img = transforms.Compose(
-            [transforms.ColorJitter(brightness=bright, contrast=contrast, saturation=saturation, hue=.5)]
+            [
+                transforms.ColorJitter(brightness=(0.5,1.5),contrast=(0.3,2.0),hue=.05, saturation=(.0,.15)),
+                transforms.RandomRotation(10),
+                transforms.RandomAffine(0, translate=(0,0.3), scale=(0.6,1.8), shear=(0.0,0.4), interpolation=False, fill=0)
+            ]
         )
         return change_img(image)
 
