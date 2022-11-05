@@ -13,7 +13,7 @@ class Train:
         self.number_cards = len(self.data)
         self.number_epochs = number_epochs
         self.net = SiameseNetwork()
-        self.loss_function = torch_nn.TripletMarginLoss()
+        self.loss_function = torch_nn.TripletMarginLoss(margin=margin)
         self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
         self.file_name = '10Cartas500epocasRESNET101'.format(number_epochs)
         self.train_log = open('./logs/' + self.file_name + '.txt', mode="a")
@@ -60,13 +60,11 @@ class Train:
                 print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss.item(), dist))
                 print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss, dist), file=self.train_log)
             print()
-            if epoch + 1 % 20 == 0:
-                file_name = '10Cartas{}epocasRESNET101'.format(epoch + 1)
+            if (epoch + 1) % 10 == 0:
+                file_name = '{}'.format(epoch + 1)
                 save_path = './training_results/' + file_name + '.pth'
                 save(self.net.state_dict(), save_path)
-        file_name = 'res'
-        save_path = './training_results/' + file_name + '.pth'
-        save(self.net.state_dict(), save_path)
+
 
     def __del__(self):
         self.train_log.close()

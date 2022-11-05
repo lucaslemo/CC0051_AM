@@ -8,9 +8,9 @@ from convertImage import ConvertImage as imageClass
 
 
 class Predict:
-    def __init__(self, predict_cards, dataset_cards, json_dict):
+    def __init__(self, predict_cards, dataset_cards, json_dict, model_path):
         self.net = SiameseNetwork()
-        self.net.load_state_dict(torch.load('./training_results/10Cartas250epocasRESNET101.pth'))
+        self.net.load_state_dict(torch.load(model_path))
         self.net.eval()
         self.data = self.__load_data_paths(predict_cards)
         self.dataset = self.__load_data_paths(dataset_cards)
@@ -60,6 +60,21 @@ class Predict:
                     else:
                         name = 'Nao encontrado'
                     print('{} -> {}: {} -- > {}'.format(self.dataset[i]['name'], self.data[card]['name'], distance, name))
+                print('')
+
+    def model_test(self):
+        with torch.no_grad():
+            media = 0
+            for card in range(self.number_cards_predict):
+                img_card = imageClass(self.data[card]['path']).get_anchor()
+                for i in range(self.number_cards_dataset):
+                    if self.data[card]['name'] == self.dataset[i]['name']:
+                        data = imageClass(self.dataset[i]['path']).get_anchor()
+                        distance = self.__getSimilarRank(data, img_card).item()
+                        media += distance
+                        break
+            media = media/self.number_cards_predict
+            return media
 
 
 class SiameseNetwork(torch_nn.Module):

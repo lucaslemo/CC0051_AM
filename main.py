@@ -11,11 +11,11 @@ def main():
     predict_dict_path = os.path.join(dir_path, 'predicts') # Caminho para ojson com as informacoes das cartas
     model_list = [] # Lista dos caminhos para os modelos treinados
     for model_file in os.listdir(result_training_path):
-            item = {
-                'path': os.path.join(result_training_path, model_file),
-                'name': model_file.strip('.pth')
-            }
-            model_list.append(item)
+        item = {
+            'path': os.path.join(result_training_path, model_file),
+            'name': model_file.strip('.pth')
+        }
+        model_list.append(item)
 
     # Train
     train = Train(dataset, number_epochs=300)

@@ -16,7 +16,7 @@ class ConvertImage:
             [
                 transforms.ColorJitter(brightness=(0.5,1.5),contrast=(0.3,2.0),hue=.05, saturation=(.0,.15)),
                 transforms.RandomRotation(10),
-                transforms.RandomAffine(0, translate=(0,0.3), scale=(0.6,1.8), shear=(0.0,0.4), interpolation=False, fill=0)
+                transforms.RandomAffine(0, translate=(0,0.3), scale=(0.6,1.8), shear=(0.0,0.4), interpolation=transforms.InterpolationMode.NEAREST, fill=0)
             ]
         )
         return change_img(image)
