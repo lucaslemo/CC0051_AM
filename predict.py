@@ -1,6 +1,7 @@
 import os
 import torch
 import json
+import random
 import torch.nn as torch_nn
 import torchvision.models as models
 import torch.nn.functional as nn_functional
@@ -9,12 +10,10 @@ from convertImage import ConvertImage as imageClass
 
 class Predict:
     def __init__(self, predict_cards, dataset_cards, json_dict, model_path):
-        self.net = SiameseNetwork()
-        self.net.load_state_dict(torch.load(model_path))
-        self.net.eval()
         self.data = self.__load_data_paths(predict_cards)
         self.dataset = self.__load_data_paths(dataset_cards)
         self.cards_details = self.__load_json(json_dict)
+        self.model = model_path
         self.number_cards_predict = len(self.data)
         self.number_cards_dataset = len(self.dataset)
 
@@ -43,8 +42,7 @@ class Predict:
         return images_path
 
     def __getSimilarRank(self, image, image2):
-        output1, output2 = self.net(image, image2)
-        euclidean_distance = nn_functional.pairwise_distance(output1, output2)
+        euclidean_distance = nn_functional.pairwise_distance(image, image2)
         return euclidean_distance
 
     def test_training(self):
@@ -75,6 +73,50 @@ class Predict:
                         break
             media = media/self.number_cards_predict
             return media
+
+    def start(self):
+        net = SiameseNetwork()
+        net.load_state_dict(torch.load(self.model))
+        net.eval()
+        with torch.no_grad():
+            mean_positive = 0.0
+            mean_negative = 0.0
+            print(self.model)
+            for card in range(len(self.data)):
+                img_card_real = imageClass(self.data[card]['path']).get_anchor()
+                while True:
+                    img_card_database = random.choice(self.dataset)
+                    if self.dataset[card]['name'] == img_card_database['name']:
+                        data_card = imageClass(img_card_database['path']).get_anchor()
+                        output1, output2 = net(data_card, img_card_real)
+                        distance = self.__getSimilarRank(output1, output2).item()
+                        print('{} --> {} Dist: {}'.format(self.dataset[card]['name'], img_card_database['name'], distance))
+                        mean_positive += distance
+                        break
+                while True:
+                    img_card_database = random.choice(self.dataset)
+                    if self.dataset[card]['name'] != img_card_database['name']:
+                        data_card = imageClass(img_card_database['path']).get_anchor()
+                        output1, output2 = net(data_card, img_card_real)
+                        distance = self.__getSimilarRank(output1, output2).item()
+                        print('  {} --> {} Dist: {}'.format(self.dataset[card]['name'], img_card_database['name'], distance))
+                        mean_negative += distance
+                        break
+            print()
+            mean_positive = float(mean_positive / len(self.data))
+            mean_negative = float(mean_negative / len(self.data))
+            return mean_positive, mean_negative
+
+    def teste_duas_cartas(self, image_path1, image_path2, model_path):
+        net = SiameseNetwork()
+        net.load_state_dict(torch.load(model_path))
+        net.eval()
+        image1 = imageClass(image_path1).get_anchor()
+        image2 = imageClass(image_path2).get_anchor()
+        with torch.no_grad():
+            output1, output2 = net(image1, image2)
+            distance = self.__getSimilarRank(output1, output2).item()
+            return distance
 
 
 class SiameseNetwork(torch_nn.Module):

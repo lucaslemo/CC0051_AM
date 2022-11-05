@@ -4,10 +4,11 @@ from predict import Predict
 
 def main():
     dir_path = os.getcwd()
-    dataset = os.path.join(dir_path, 'small_dataset')  # Caminho para as imagens do banco de dados
-    data_test_path = os.path.join(dir_path, 'dme')  # Caminho para as imagens reais das cartas para teste
+    test_dataset_path = os.path.join(dir_path, 'small_dataset')  # Caminho para as imagens do banco de dados
+    real_dataset_path = os.path.join(dir_path, 'test_dataset')  # Caminho para as imagens reais das cartas para teste
     result_training_path = os.path.join(dir_path, 'training_results')  # Caminho para os modelos treinados
     predict_dict_path = os.path.join(dir_path, 'predicts')  # Caminho para ojson com as informacoes das cartas
+    models_epoch = os.path.join(result_training_path, 'ph_teste_v1')
     model_list = []  # Lista dos caminhos para os modelos treinados
     for model_file in os.listdir(result_training_path):
         item = {
@@ -16,27 +17,35 @@ def main():
         }
         model_list.append(item)
 
-    file_csv = open('meu_csv.csv', mode='w')
+    model_list_epoch = {}  # Dicionario dos caminhos para os modelos treinados
+    for model_file in os.listdir(models_epoch):
+        item = {
+            'path': os.path.join(models_epoch, model_file),
+            'name': model_file.strip('.pth')
+        }
+        model_list_epoch[int(model_file.strip('.pth'))] = item
 
     # Predict
+    file_csv = open('ph_teste_v1.csv', mode='w')
+    mean_neg = []
     for i in range(0, 301, 10):
         if i == 0:
-            print('modelos', file=file_csv, end='; ')
-        elif i < 300:
-            print(i, file=file_csv, end='; ')
+            print('positive', file=file_csv, end='; ')
         else:
-            print(i, file=file_csv, end='')
-
-    for count in range(0, 31):
-        if count == 0:
-            print('1m5e-2lr', file=file_csv, end='; ')
-        else:
-            predict_card = Predict(data_test_path, dataset, predict_dict_path, model_list[count]['path'])
-            media = predict_card.model_test()
-            if count < 30:
-                print(media, file=file_csv, end='; ')
+            predict_card = Predict(real_dataset_path, test_dataset_path, predict_dict_path, model_list_epoch[i]['path'])
+            mean1, mean2 = predict_card.start()
+            mean_neg.append(mean2)
+            if i < 300:
+                print(mean1, file=file_csv, end='; ')
             else:
-                print(media, file=file_csv, end='')
+                print(mean1, file=file_csv)
+    for i in range(len(mean_neg)):
+        if i == 0:
+            print('negative', file=file_csv, end='; ')
+        elif i < len(mean_neg):
+            print(mean_neg[i], file=file_csv, end='; ')
+        else:
+            print(mean_neg[i], file=file_csv)
 
     file_csv.close()
 
