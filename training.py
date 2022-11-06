@@ -1,84 +1,153 @@
 import os
 import random
+import PIL
+import models.resnet as mod_res
 import torch.nn as torch_nn
-import torchvision.models as models
+import torchvision.datasets as dset
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, Dataset
 from torch import optim, save as save
-from convertImage import ConvertImage as imageClass
 
 
 class Train:
-    def __init__(self, training_path, number_epochs=1, margin=1.0, learning_rate=0.05):
-        # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
-        self.data = self.__load_data_paths(training_path)
-        self.number_cards = len(self.data)
-        self.number_epochs = number_epochs
+    def __init__(self, training_path, number_epochs, batch_size, margin, learning_rate):
+        self.folder_dataset = dset.ImageFolder(root=training_path)
+        self.dataset = CustomDataset(
+            imageFolderDataset=self.folder_dataset,
+            transform=transforms.Compose(
+                [
+                    transforms.Grayscale(num_output_channels=3),
+                    transforms.Resize((244,244)),
+                    transforms.ColorJitter(
+                        brightness=(0.2,1.5),
+                        contrast=(0.1,2.5),
+                        hue=.05,
+                        saturation=(.0,.15)
+                    ),
+                    transforms.RandomRotation(10),
+                    transforms.RandomAffine(
+                        0, 
+                        translate=(0,0.3),
+                        scale=(0.6,1.8),
+                        shear=(0.0,0.4),
+                        interpolation=transforms.InterpolationMode.NEAREST,
+                        fill = 0
+                    ),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225]
+                    )
+                ]
+            ),
+            should_invert=False
+        )
+        self.train_dataloader = DataLoader(
+            self.dataset,
+            shuffle=True,
+            num_workers=4,
+            batch_size=batch_size
+        )
         self.net = SiameseNetwork()
-        self.loss_function = torch_nn.TripletMarginLoss()
+        self.loss = torch_nn.TripletMarginLoss(margin=margin)
         self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
-        self.file_name = '10Cartas500epocasRESNET101'.format(number_epochs)
-        self.train_log = open('./logs/' + self.file_name + '.txt', mode="a")
-
-    def __load_data_paths(self, training_path):
-        images_path = []
-        for card in os.listdir(training_path):
-            item = {
-                'path': os.path.join(training_path, card),
-                'card_id': card.strip('.jpg'),
-                'status_use': 0
-            }
-            images_path.append(item)
-        return images_path
-
-    def __chose_cards(self, epoch):
-        rand_acn = random.randint(0, self.number_cards - 1)
-        while self.data[rand_acn]['status_use'] > epoch:
-            if rand_acn == self.number_cards - 1:
-                rand_acn = 0
-            else:
-                rand_acn += 1
-        rand_neg = random.randint(0, self.number_cards - 1)
-        while self.data[rand_neg]['card_id'] == self.data[rand_acn]['card_id']:
-            if rand_neg == self.number_cards - 1:
-                rand_neg = 0
-            else:
-                rand_neg += 1
-        self.data[rand_acn]['status_use'] += 1
-        img = imageClass(self.data[rand_acn]['path'])
-        neg = imageClass(self.data[rand_neg]['path'])
-        return img.get_anchor(), img.get_positive(), neg.get_anchor()
-
+        self.number_epochs = number_epochs
+    
     def start(self):
+        counter = []
+        loss_history = [] 
+        iteration_number= 0
+        prevNum = -1
         for epoch in range(self.number_epochs):
-            for i in range(self.number_cards):
-                img_anc, img_pos, img_neg = self.__chose_cards(epoch)
+            for i, data in enumerate(self.train_dataloader, 0):
+                img_anc, img_pos, img_neg, _ = data
                 self.optimizer.zero_grad()
-                output1, output2, output3 = self.net(img_anc, img_pos, img_neg)
-                loss = self.loss_function(output1, output2, output3)
-                loss.backward()
+                output1, output2, output3 = self.net(img_anc, img_pos , img_neg)
+                loss_contrastive = self.loss(output1, output2, output3)
+                loss_contrastive.backward()
                 self.optimizer.step()
-                dist = (output1 - output2).pow(2).sum(1).pow(.5)
-                print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss.item(), dist))
-                print("Epoch number: {} Current card: {} ---> loss: {} ---> positive distance: {}".format(epoch, i, loss, dist), file=self.train_log)
-            print()
-            if epoch + 1 % 20 == 0:
-                file_name = '10Cartas{}epocasRESNET101'.format(epoch + 1)
-                save_path = './training_results/' + file_name + '.pth'
-                save(self.net.state_dict(), save_path)
-        file_name = 'res'
-        save_path = './training_results/' + file_name + '.pth'
-        save(self.net.state_dict(), save_path)
-
-    def __del__(self):
-        self.train_log.close()
+                # To prevent repetation of epoch
+                if i % 10 == 0 and prevNum != epoch:
+                    print("Epoch number {}\n Current loss {}\n".format(epoch,loss_contrastive.item()))
+                    iteration_number +=10
+                    counter.append(iteration_number)
+                    loss_history.append(loss_contrastive.item())
+                    prevNum = epoch
+            if (epoch + 1) % 10 == 0:
+                save_path = './training_results/v3/' + '{}'.format(epoch + 1) + '.pth'
+                save(self.net.state_dict(), save_path)    
 
 
-# https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html
-# https://pytorch.org/vision/main/models.html
-# https://pytorch.org/hub/pytorch_vision_resnet/
+class CustomDataset(Dataset):
+    def __init__(self, imageFolderDataset, transform=None, should_invert=True):
+        self.imageFolderDataset = imageFolderDataset    
+        self.transform = transform
+        self.should_invert = should_invert
+
+    def __getitem__(self, index):
+        img0_tuple = random.choice(self.imageFolderDataset.imgs)
+
+        # Get an image from the same class
+        while True:
+            #keep looping till the same class image is found
+            img1_tuple = random.choice(self.imageFolderDataset.imgs) 
+            if img0_tuple[1] == img1_tuple[1]:
+                break
+
+        # Get an image from a different class
+        while True:
+            #keep looping till a different class image is found
+            img2_tuple = random.choice(self.imageFolderDataset.imgs) 
+            if img0_tuple[1] != img2_tuple[1]:
+                break
+
+        width, height = (244,244)
+
+        pathList = []
+        pathList.append((img0_tuple[0], img1_tuple[0], img2_tuple[0]))
+
+        # Open imgs
+        img0 = PIL.Image.open(img0_tuple[0])
+        img1 = PIL.Image.open(img1_tuple[0])
+        img2 = PIL.Image.open(img2_tuple[0])
+
+        # Crop the card art
+        img0 = img0.crop((50, 111, 370, 431))
+        img1 = img1.crop((50, 111, 370, 431))
+        img2 = img2.crop((50, 111, 370, 431))
+
+        # Resize card art
+        img0 = img0.resize((width, height))
+        img1 = img1.resize((width, height))
+        img2 = img2.resize((width, height))
+        
+        # Convert for L mode
+        img0 = img0.convert("L")
+        img1 = img1.convert("L")
+        img2 = img2.convert("L")
+
+        if self.should_invert:
+            img0 = PIL.ImageOps.invert(img0)
+            img1 = PIL.ImageOps.invert(img1)
+            img2 = PIL.ImageOps.invert(img2)
+
+        if self.transform is not None:
+            img0 = self.transform(img0)
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
+        # anchor, positive image, negative image
+        return img0, img1, img2, pathList
+
+    def __len__(self):
+        return len(self.imageFolderDataset.imgs)
+
+
 class SiameseNetwork(torch_nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
-        self.resnet = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
+        # self.resnet = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
+        self.resnet = mod_res.resnet101(filter_size=3)
 
     def forward_once(self, input1):
         output = self.resnet(input1)
