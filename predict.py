@@ -54,6 +54,7 @@ class Predict:
 
     def __cv_prepare(self, image_path):
         img = cv2.imread(image_path, 0)
+        img = cv2.resize(img, (421, 614), interpolation=cv2.INTER_AREA)
         img = img[111:431, 50:370]
         img = cv2.resize(img, (244, 244), interpolation=cv2.INTER_AREA)
         img = cv2.equalizeHist(img)
@@ -87,7 +88,6 @@ class Predict:
                         data_card = self.__cv_prepare(img_card_database['path'])
                         output1, output2 = net(Variable(data_card), Variable(img_card_real))
                         distance = self.__getSimilarRank(output1, output2).item()
-                        self.__imshow(img_card_database['path'], self.test_dataset[card]['path'])
                         print('{} --> {} Dist: {}'.format(self.test_dataset[card]['name'], img_card_database['name'], distance))
                         mean_positive += distance
                         break

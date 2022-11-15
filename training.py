@@ -10,7 +10,7 @@ from torch import optim, save as save
 
 
 class Train:
-    def __init__(self, training_path, number_epochs, batch_size, margin, learning_rate):
+    def __init__(self, training_path, number_epochs, batch_size, margin, learning_rate, save_imgs=False):
         self.folder_dataset = dset.ImageFolder(root=training_path)
         self.dataset = CustomDataset(
             imageFolderDataset=self.folder_dataset,
@@ -19,28 +19,22 @@ class Train:
                     transforms.Grayscale(num_output_channels=3),
                     transforms.Resize((244,244)),
                     transforms.ColorJitter(
-                        brightness=(0.2,1.5),
-                        contrast=(0.1,2.5),
+                        brightness=(0.3,1.4),
+                        contrast=(0.3,2.2),
                         hue=.05,
                         saturation=(.0,.15)
                     ),
-                    transforms.RandomRotation(10),
+                    transforms.RandomRotation(3),
                     transforms.RandomAffine(
-                        0, 
-                        translate=(0,0.3),
-                        scale=(0.6,1.8),
-                        shear=(0.0,0.4),
+                        0,
+                        translate=(0,0.05),
                         interpolation=transforms.InterpolationMode.NEAREST,
-                        fill = 0
-                    ),
-                    transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225]
+                        fill=0
                     )
                 ]
             ),
-            should_invert=False
+            should_invert=False,
+            save_imgs=save_imgs
         )
         self.train_dataloader = DataLoader(
             self.dataset,
@@ -68,21 +62,33 @@ class Train:
                 self.optimizer.step()
                 # To prevent repetation of epoch
                 if i % 10 == 0 and prevNum != epoch:
-                    print("Epoch number {}\n Current loss {}\n".format(epoch,loss_contrastive.item()))
+                    print("Epoch number {}\n Current loss {}\n".format(epoch, loss_contrastive.item()))
                     iteration_number +=10
                     counter.append(iteration_number)
                     loss_history.append(loss_contrastive.item())
                     prevNum = epoch
             if (epoch + 1) % 10 == 0:
-                save_path = './training_results/v3/' + '{}'.format(epoch + 1) + '.pth'
+                save_path = './training_results/v4/' + '{}'.format(epoch + 1) + '.pth'
                 save(self.net.state_dict(), save_path)    
 
 
 class CustomDataset(Dataset):
-    def __init__(self, imageFolderDataset, transform=None, should_invert=True):
+    def __init__(self, imageFolderDataset, transform=None, should_invert=True, save_imgs=False):
         self.imageFolderDataset = imageFolderDataset    
         self.transform = transform
         self.should_invert = should_invert
+        self.save_imgs = save_imgs
+
+    def __concatened_images(self, img0, img1):
+        img_new = PIL.Image.new('L', (img0.width + img1.width, img0.height))
+        img_new.paste(img0, (0, 0))
+        img_new.paste(img1, (img0.width, 0))
+        return img_new
+
+    def __save_images(self, img0, img1, img2, path):
+        img_aux = self.__concatened_images(img0, img1)
+        img_save = self.__concatened_images(img_aux, img2)
+        img_save.save(path)
 
     def __getitem__(self, index):
         img0_tuple = random.choice(self.imageFolderDataset.imgs)
@@ -135,6 +141,28 @@ class CustomDataset(Dataset):
             img0 = self.transform(img0)
             img1 = self.transform(img1)
             img2 = self.transform(img2)
+
+        if self.save_imgs:
+            self.__save_images(
+                img0, 
+                img1, 
+                img2, 
+                './images_from_training/' + img0_tuple[0].split('\\')[-1]
+            )
+        
+        # Transform to tensor
+        toTensor = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                )
+            ]
+        )
+        img0 = toTensor(img0)
+        img1 = toTensor(img1)
+        img2 = toTensor(img2)
 
         # anchor, positive image, negative image
         return img0, img1, img2, pathList
