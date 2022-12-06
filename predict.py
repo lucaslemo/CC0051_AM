@@ -77,6 +77,33 @@ class Predict:
         net.load_state_dict(torch.load(self.model))
         net.eval()
         with torch.no_grad():
+            print(self.model)
+            result = []
+            header = []
+            header.append(self.model)
+            for i in range(len(self.test_dataset)):
+                header.append(self.test_dataset[i]['name'])
+            result.append(header)
+            for i in range(len(self.test_dataset)):
+                img_card_real = self.__cv_prepare(self.test_dataset[i]['path'])
+                result_aux = []
+                result_aux.append(self.test_dataset[i]['name'])
+                for j  in range(len(self.dataset)):
+                    img_card_dataset = self.__cv_prepare(self.dataset[j]['path'])
+                    output1, output2 = net(Variable(img_card_real), Variable(img_card_dataset))
+                    distance = self.__getSimilarRank(output1, output2)
+                    distance = distance.item()
+                    result_aux.append(distance)
+                    print('{} --> {} Dist: {}'.format(self.test_dataset[i]['name'], self.dataset[j]['name'], distance))
+                print()
+                result.append(result_aux)
+            return result
+
+    def means(self):
+        net = SiameseNetwork()
+        net.load_state_dict(torch.load(self.model))
+        net.eval()
+        with torch.no_grad():
             mean_positive = 0.0
             mean_negative = 0.0
             print(self.model)

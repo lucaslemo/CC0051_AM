@@ -68,7 +68,7 @@ class Train:
                     loss_history.append(loss_contrastive.item())
                     prevNum = epoch
             if (epoch + 1) % 10 == 0:
-                save_path = './training_results/v4/' + '{}'.format(epoch + 1) + '.pth'
+                save_path = './training_results/v5/' + '{}'.format(epoch + 1) + '.pth'
                 save(self.net.state_dict(), save_path)    
 
 
