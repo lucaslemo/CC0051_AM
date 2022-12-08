@@ -4,7 +4,7 @@ import pandas as pd
 import csv
 
 #Aqui você vai abrir seu arquivos
-csv1 = open('v3.csv', 'r')
+csv1 = open('ph_teste_v2.csv', 'r')
 
 #Para ler os arquivos csv
 leitor_csv1 = csv.reader(csv1, delimiter=';')#nao esqueça de colocar qual o tipo de delimitador entre cada célula se é , ; :
@@ -29,5 +29,5 @@ for linha in leitor_csv1:
 plt.plot(epochs, pos, label="Positivo")
 plt.plot(epochs, neg, label="Negativo")
 plt.legend()
-plt.title("Modelo Lucas V3")
+plt.title("Modelo PH V2")
 plt.show()

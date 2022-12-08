@@ -5,7 +5,7 @@ from predict import Predict
 
 def main():
     dir_path = os.getcwd()
-    dataset = os.path.join(dir_path, 'small_dataset') # Caminho para as imagens do banco de dados
+    dataset = os.path.join(dir_path, 'new_dataset') # Caminho para as imagens do banco de dados
     data_test_path = os.path.join(dir_path, 'dme') # Caminho para as imagens reais das cartas para teste
     result_training_path = os.path.join(dir_path, 'training_results') # Caminho para os modelos treinados
     predict_dict_path = os.path.join(dir_path, 'predicts') # Caminho para ojson com as informacoes das cartas

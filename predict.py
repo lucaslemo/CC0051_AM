@@ -82,6 +82,7 @@ class Predict:
             mean_positive = 0.0
             mean_negative = 0.0
             print(self.model)
+            print(len(self.data))
             for card in range(len(self.data)):
                 img_card_real = imageClass(self.data[card]['path']).get_anchor()
                 while True:
@@ -117,6 +118,54 @@ class Predict:
             output1, output2 = net(image1, image2)
             distance = self.__getSimilarRank(output1, output2).item()
             return distance
+
+    def testa_acertos(self):
+        net = SiameseNetwork()
+        net.load_state_dict(torch.load(self.model))
+        net.eval()
+        with torch.no_grad():
+            qtd = 0
+            for real_card in range(len(self.data)):
+                min_distance = 100000
+                match = -1
+                img_card_real = imageClass(self.data[real_card]['path']).get_anchor()
+                for data_card in range(len(self.dataset)):
+                    img_card_data = imageClass(self.dataset[data_card]['path']).get_anchor()
+                    output1, output2 = net(img_card_real, img_card_data)
+                    distance = self.__getSimilarRank(output1, output2).item()
+                    if distance < min_distance:
+                        min_distance = distance
+                        match = data_card
+                if match != -1 and self.data[real_card]['name'] == self.dataset[match]['name']:
+                    qtd = qtd + 1
+            return qtd
+
+    def calcula_todas_distancias(self):
+        net = SiameseNetwork()
+        net.load_state_dict(torch.load(self.model))
+        net.eval()
+        with torch.no_grad():
+            print(self.model)
+            result = []
+            header = []
+            header.append(self.model)
+            for i in range(len(self.dataset)):
+                header.append(self.dataset[i]['name'])
+            result.append(header)
+            for i in range(len(self.dataset)):
+                img_card_real = imageClass(self.data[i]['path']).get_anchor()
+                result_aux = []
+                result_aux.append(self.dataset[i]['name'])
+                for j in range(len(self.dataset)):
+                    img_card_dataset = imageClass(self.dataset[j]['path']).get_anchor()
+                    output1, output2 = net(img_card_real, img_card_dataset)
+                    distance = self.__getSimilarRank(output1, output2)
+                    distance = distance.item()
+                    result_aux.append(distance)
+                    print('{} --> {} Dist: {}'.format(self.dataset[i]['name'], self.dataset[j]['name'], distance))
+                print()
+                result.append(result_aux)
+            return result
 
 
 class SiameseNetwork(torch_nn.Module):

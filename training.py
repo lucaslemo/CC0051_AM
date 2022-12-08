@@ -65,7 +65,6 @@ class Train:
                 save_path = './training_results/' + file_name + '.pth'
                 save(self.net.state_dict(), save_path)
 
-
     def __del__(self):
         self.train_log.close()
 
